@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>포인트 관리 페이지</title>
+</head>
+<body>
+    <h1>포인트 관리 페이지</h1>
+
+    <div id="dateTime">
+        <!-- 현재 년도, 월, 일, 시간, 분, 초 표시 -->
+    </div>
+
+    <div id="countPeriod">
+        <!-- 카운트 기간 표시 -->
+    </div>
+
+    <form id="expenseForm">
+        <label for="expenseAmount">이번 달 소비금액:</label>
+        <input type="number" id="expenseAmount" required>
+        <button type="button" onclick="calculatePoints()">다음</button>
+    </form>
+
+    <h2>미션 관리</h2>
+    <form id="missionForm">
+        <label for="mission">미션:</label>
+        <input type="text" id="mission" required>
+        <button type="button" onclick="addMission()">추가</button>
+    </form>
+
+    <h2>미션 목록</h2>
+    <ul id="missionList">
+        <!-- 미션 목록이 여기에 나열됩니다. -->
+    </ul>
+
+    <h2>포인트: <span id="pointCount">0p</span></h2>
+    <button type="button" onclick="resetPoints()">포인트 초기화</button>
+
+    <!-- 메모 입력란 -->
+    <h2>메모</h2>
+    <textarea id="memo" rows="4" cols="50"></textarea>
+    <button type="button" onclick="saveMemo()">메모 저장</button>
+
+    <script>
+        let points = 0;
+        let missions = [];
+
+        // 초 단위로 현재 날짜와 시간을 업데이트
+        function updateDateTime() {
+            const dateTimeElement = document.getElementById('dateTime');
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = now.getMonth() + 1;
+            const day = now.getDate();
+            const hour = now.getHours();
+            const minute = now.getMinutes();
+            const second = now.getSeconds();
+            dateTimeElement.textContent = `현재 시간: ${year}-${month}-${day} ${hour}:${minute}:${second}`;
+        }
+        updateDateTime(); // 초기 호출
+        setInterval(updateDateTime, 1000); // 1초마다 업데이트
+
+        // 카운트 기간을 표시
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = now.getMonth() + 1; // 월은 0부터 시작하므로 1을 더함
+        const lastDay = new Date(year, month, 0).getDate();
+        const countPeriodElement = document.getElementById('countPeriod');
+        countPeriodElement.textContent = `카운트 기간: ${year}/${month}/1~${year}/${month}/${lastDay}`;
+
+        // 웹 브라우저 로컬 스토리지에서 데이터 로드
+        window.onload = function () {
+            const storedPoints = localStorage.getItem('points');
+            if (storedPoints) {
+                points = parseInt(storedPoints);
+                document.getElementById('pointCount').textContent = points + 'p';
+            }
+
+            const storedMissions = localStorage.getItem('missions');
+            if (storedMissions) {
+                missions = JSON.parse(storedMissions);
+                displayMissions();
+            }
+
+            const storedMemo = localStorage.getItem('memo');
+            if (storedMemo) {
+                document.getElementById('memo').value = storedMemo;
+            }
+        };
+
+        function calculatePoints() {
+            const expenseAmount = parseFloat(document.getElementById('expenseAmount').value);
+            const n = Math.floor(expenseAmount / 10000);
+            const pointsEarned = 2 * n - 1;
+            points += pointsEarned;
+            document.getElementById('pointCount').textContent = points + 'p';
+
+            // 포인트를 로컬 스토리지에 저장
+            localStorage.setItem('points', points.toString());
+        }
+
+        function addMission() {
+            const missionText = document.getElementById('mission').value;
+            if (missionText.trim() === '') {
+                alert('미션을 입력하세요.');
+                return;
+            }
+
+            missions.push(missionText);
+            displayMissions();
+
+            // 미션 목록을 로컬 스토리지에 저장
+            localStorage.setItem('missions', JSON.stringify(missions));
+
+            // 미션 입력 필드 초기화
+            document.getElementById('mission').value = '';
+        }
+
+        function removeCompletedMission(event) {
+            if (event.target.checked) {
+                const index = missions.indexOf(event.target.parentElement.textContent);
+                if (index !== -1) {
+                    missions.splice(index, 1);
+                    displayMissions();
+                }
+
+                points -= 1; // 미션 완료시 포인트 차감
+                document.getElementById('pointCount').textContent = points + 'p';
+
+                // 업데이트된 미션 목록을 로컬 스토리지에 저장
+                localStorage.setItem('missions', JSON.stringify(missions));
+            }
+        }
+
+        function displayMissions() {
+            const missionList = document.getElementById('missionList');
+            missionList.innerHTML = ''; // 목록 초기화
+
+            for (const missionText of missions) {
+                const listItem = document.createElement('li');
+                listItem.textContent = missionText;
+
+                // 미션 완료 체크박스 추가
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.addEventListener('change', removeCompletedMission);
+                listItem.appendChild(checkbox);
+
+                missionList.appendChild(listItem);
+            }
+        }
+
+        function resetPoints() {
+            points = 0;
+            document.getElementById('pointCount').textContent = '0p';
+
+            // 로컬 스토리지에서 포인트 데이터 삭제
+            localStorage.removeItem('points');
+        }
+
+        // 메모 저장 함수
+        function saveMemo() {
+            const memoText = document.getElementById('memo').value;
+
+            // 메모를 로컬 스토리지에 저장
+            localStorage.setItem('memo', memoText);
+        }
+    </script>
+</body>
+</html>
